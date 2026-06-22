@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareerCanvas - Job Application Tracker</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- PWA Manifest link -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='5' width='28' height='22' rx='6' fill='%232563eb'/%3E%3Crect x='7' y='11' width='4' height='10' rx='1' fill='%23ffffff' fill-opacity='0.5'/%3E%3Crect x='14' y='11' width='4' height='13' rx='1' fill='%23ffffff'/%3E%3Crect x='21' y='11' width='4' height='7' rx='1' fill='%23ffffff' fill-opacity='0.7'/%3E%3C/svg%3E">  
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+  <!-- ================= AUTH CONTAINER ================= -->
+  <div id="auth-container" class="flex flex-col items-center justify-center min-h-screen px-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center space-y-6">
+      <div class="h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mx-auto shadow-md">
+        CC
+      </div>
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">CareerCanvas</h1>
+        <p class="text-slate-500 mt-2">Track, visualize, and master your job application pipeline.</p>
+      </div>
+      <button id="login-btn" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 font-medium py-3 px-4 rounded-xl shadow-xs transition duration-200 cursor-pointer">
+        <svg class="w-5 h-5" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-1.14 2.78-2.4 3.62v3.01h3.88c2.27-2.09 3.57-5.17 3.57-8.48Z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.01c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.11-6.68-4.96H1.21v3.11C3.18 21.88 7.31 24 12 24Z"/>
+          <path fill="#FBBC05" d="M5.32 14.28a7.16 7.16 0 0 1 0-4.56V6.61H1.21a11.94 11.94 0 0 0 0 10.78l4.11-3.11Z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0 7.31 0 3.18 2.12 1.21 5.39l4.11 3.11c.94-2.85 3.57-4.96 6.68-4.96Z"/>
+        </svg>
+        Sign in with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APP CONTAINER ================= -->
+  <div id="app-container" class="hidden flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+	<div class="flex items-center gap-3">
+	  <!-- CareerCanvas SVG Logo -->
+	  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-8 h-8 drop-shadow-xs">
+		<!-- Main structural canvas shape with smooth rounded corners -->
+		<rect x="2" y="5" width="28" height="22" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+		<!-- Handle/Top clip accent -->
+		<path d="M11 5V3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+		<!-- Kanban Column 1 (Wishlist/Applied) -->
+		<rect x="7" y="10" width="4" height="12" rx="1.5" fill="#3b82f6"/>
+		<!-- Kanban Column 2 (Interviewing - highlighted peak phase) -->
+		<rect x="14" y="10" width="4" height="14" rx="1.5" fill="#2563eb"/>
+		<!-- Kanban Column 3 (Offered) -->
+		<rect x="21" y="10" width="4" height="9" rx="1.5" fill="#60a5fa"/>
+	  </svg>
+	  
+	  <h1 class="text-xl font-black tracking-tight text-slate-900">Career<span class="text-blue-600">Canvas</span></h1>
+	</div>
+		
+        <div class="flex items-center gap-4">
+          <button id="add-app-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer">
+            + New Application
+          </button>
+          <button id="logout-btn" class="text-sm text-slate-500 hover:text-slate-800 transition cursor-pointer">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 overflow-x-auto">
+      <!-- Kanban Board Columns Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6 min-w-[1000px] md:min-w-0 h-[calc(100vh-10rem)]">
+        
+        <!-- Wishlist -->
+        <div class="flex flex-col bg-slate-100 rounded-2xl p-4 border border-slate-200/60">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="font-bold text-slate-700 text-sm tracking-wide uppercase">Wishlist</h3>
+            <span id="count-wishlist" class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+          </div>
+          <div id="col-wishlist" class="flex-1 space-y-3 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Applied -->
+        <div class="flex flex-col bg-slate-100 rounded-2xl p-4 border border-slate-200/60">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="font-bold text-slate-700 text-sm tracking-wide uppercase">Applied</h3>
+            <span id="count-applied" class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+          </div>
+          <div id="col-applied" class="flex-1 space-y-3 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Interviewing -->
+        <div class="flex flex-col bg-slate-100 rounded-2xl p-4 border border-slate-200/60">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="font-bold text-slate-700 text-sm tracking-wide uppercase">Interviewing</h3>
+            <span id="count-interviewing" class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+          </div>
+          <div id="col-interviewing" class="flex-1 space-y-3 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Offered -->
+        <div class="flex flex-col bg-slate-100 rounded-2xl p-4 border border-slate-200/60">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="font-bold text-slate-700 text-sm tracking-wide uppercase">Offered</h3>
+            <span id="count-offered" class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+          </div>
+          <div id="col-offered" class="flex-1 space-y-3 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Rejected -->
+        <div class="flex flex-col bg-slate-100 rounded-2xl p-4 border border-slate-200/60">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <h3 class="font-bold text-slate-700 text-sm tracking-wide uppercase">Rejected</h3>
+            <span id="count-rejected" class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+          </div>
+          <div id="col-rejected" class="flex-1 space-y-3 overflow-y-auto pr-1"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= DETAIL DRAWERS & MODALS ================= -->
+  
+  <!-- Add/Edit Application Modal Overlay -->
+  <div id="form-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h2 id="modal-title" class="text-xl font-bold text-slate-900">Add New Application</h2>
+        <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 text-2xl font-semibold cursor-pointer">&times;</button>
+      </div>
+      <form id="app-form" class="space-y-4">
+        <input type="hidden" id="form-app-id">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Company Name *</label>
+          <input type="text" id="form-company" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Job Title *</label>
+          <input type="text" id="form-title" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500">
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+			<div>
+				<label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Min Salary</label>
+				<input type="text" id="form-min-salary" placeholder="$0" inputmode="numeric" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500">
+			  </div>
+			  <div>
+				<label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Max Salary</label>
+				<input type="text" id="form-max-salary" placeholder="$0" inputmode="numeric" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500">
+			  </div>
+			  <div>
+				<label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Requested</label>
+				<input type="text" id="form-requested-salary" placeholder="$0" inputmode="numeric" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500">
+			  </div>		  
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
+            <select id="form-status" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-hidden focus:border-blue-500">
+              <option value="Wishlist">Wishlist</option>
+              <option value="Applied">Applied</option>
+              <option value="Interviewing">Interviewing</option>
+              <option value="Offered">Offered</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Location Type</label>
+            <select id="form-location" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-hidden focus:border-blue-500">
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="On-site">On-site</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Job Post URL</label>
+          <input type="url" id="form-url" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500">
+        </div>
+		<div>
+		  <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Notes</label>
+		  <textarea id="form-notes" rows="4" placeholder="Enter notes, interviewer names, timelines here..." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500"></textarea>
+		</div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" id="delete-app-btn" class="hidden mr-auto bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer">Delete</button>
+          <button type="button" id="cancel-modal-btn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer">Cancel</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer">Save Application</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

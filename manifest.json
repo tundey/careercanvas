@@ -1,0 +1,25 @@
+{
+  "short_name": "CareerCanvas",
+  "name": "CareerCanvas Job Application Tracker",
+  "description": "Track, visualize, and manage your job application pipeline with full offline capability.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3850/3850284.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3850/3850284.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities"]
+}
