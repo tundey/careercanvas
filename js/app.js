@@ -54,8 +54,11 @@ const formMaxSalary = document.getElementById('form-max-salary');
 const formRequestedSalary = document.getElementById('form-requested-salary');
 const formStatus = document.getElementById('form-status');
 const formLocation = document.getElementById('form-location');
+const formCityName = document.getElementById('form-city-name');
 const formUrl = document.getElementById('form-url');
 const formNotes = document.getElementById('form-notes');
+const formSource = document.getElementById('form-source');
+const formLastContact = document.getElementById('form-last-contact');
 
 // Kanban Column Map
 const columns = {
@@ -360,13 +363,16 @@ function openModal(id = null) {
       modalTitle.textContent = `Edit ${app.companyName}`;
       formCompany.value = app.companyName;
       formTitle.value = app.jobTitle;
-		formMinSalary.value = app.minSalary ? formatCurrency(app.minSalary) : '';
-		formMaxSalary.value = app.maxSalary ? formatCurrency(app.maxSalary) : '';
-		formRequestedSalary.value = app.requestedSalary ? formatCurrency(app.requestedSalary) : '';
+	  formMinSalary.value = app.minSalary ? formatCurrency(app.minSalary) : '';
+	  formMaxSalary.value = app.maxSalary ? formatCurrency(app.maxSalary) : '';
+	  formRequestedSalary.value = app.requestedSalary ? formatCurrency(app.requestedSalary) : '';
       formStatus.value = app.status || 'Wishlist';
       formLocation.value = app.location || 'Remote';
+	  formCityName.value = app.cityName || '';
       formUrl.value = app.url || '';
+	  formSource.value = app.Source || '';
       formNotes.value = app.notes || '';
+	  formLastContact.value = app.lastContact || '';
       deleteAppBtn.classList.remove('hidden');
     }
   }
@@ -395,6 +401,7 @@ appForm.addEventListener('submit', async (e) => {
   const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
   const day = String(today.getDate()).padStart(2, '0');
   const timestamp = `${year}-${month}-${day}`; // Always outputs clean local "YYYY-MM-DD"
+  const formLastContact = document.getElementById('form-last-contact');
 
   const appData = {
     companyName: formCompany.value,
@@ -404,9 +411,12 @@ appForm.addEventListener('submit', async (e) => {
     requestedSalary: parseCurrencyToNumber(formRequestedSalary.value), 
     status: formStatus.value,
     location: formLocation.value,
+	cityName: formCityName.value,
     url: formUrl.value,
+	source: formSource.value,
     notes: formNotes.value,
     lastUpdated: timestamp, 
+	lastContact: formLastContact.value || '',
 	timestamp: serverTimestamp()
   };
 

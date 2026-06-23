@@ -93,6 +93,9 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
+	  
+	  debugger;
+	  
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         
@@ -110,6 +113,8 @@
           showStatus("Spreadsheet successfully converted to JSON matrix memory. Inspect your record count before saving.", "success");
         }
       };
+	  
+	  debugger;
       reader.readAsArrayBuffer(file);
     }
 
@@ -130,8 +135,10 @@
 
       try {
         for (const row of parsedData) {
-          const targetStatus = ["Wishlist", "Applied", "Interviewing", "Offered", "Rejected"].includes(row.Status) ? row.Status : "Applied";
-          const targetLocation = ["Remote", "Hybrid", "Onsite"].includes(row.Location) ? row.Location : "Remote";
+          //const targetStatus = ["Wishlist", "Applied", "Interviewing", "Offered", "Rejected"].includes(row.Status) ? row.Status : "Applied";
+          //const targetLocation = ["Remote", "Hybrid", "Onsite"].includes(row.Location) ? row.Location : "Remote";
+		  
+		  const targetLocationType = ["Remote", "Hybrid", "Onsite"].includes(row.LocationType) ? row.LocationType : "Remote";
           
           const appPayload = {
             companyName: String(row.Company || 'Unknown Company').trim(),
@@ -139,11 +146,15 @@
             minSalary: Number(row.MinSalary) || 0,
             maxSalary: Number(row.MaxSalary) || 0,
             requestedSalary: Number(row.TargetSalary) || 0,
-            status: targetStatus,
-            location: targetLocation,
+            //status: targetStatus,
+			status: ["Wishlist", "Applied", "Interviewing", "Offered", "Rejected"].includes(row.Status) ? row.Status : "Applied",
+            location: targetLocationType,
+			cityName: String(row.Location || '').trim(),
             url: String(row.URL || '').trim(),
+			source: String(row.Source || '').trim(),
             notes: String(row.Notes || '').trim(),
             dateApplied: String(row.DateApplied || todayStr).trim(),
+			lastContact: String(row.LastContact || '').trim(),
             lastUpdated: todayStr
           };
 
