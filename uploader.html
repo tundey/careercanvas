@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareerCanvas — Data Importer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='5' width='28' height='22' rx='6' fill='%232563eb'/%3E%3Crect x='7' y='11' width='4' height='10' rx='1' fill='%23ffffff' fill-opacity='0.5'/%3E%3Crect x='14' y='11' width='4' height='13' rx='1' fill='%23ffffff'/%3E%3Crect x='21' y='11' width='4' height='7' rx='1' fill='%23ffffff' fill-opacity='0.7'/%3E%3C/svg%3E">
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex items-center justify-center p-4">
+
+  <div class="bg-white w-full max-w-xl rounded-2xl shadow-xl border border-slate-200 p-6 space-y-6">
+    
+    <div class="border-b border-slate-100 pb-4">
+      <h2 class="text-xl font-black tracking-tight text-slate-900">Career<span class="text-blue-600">Canvas</span> Bulk Importer</h2>
+      <p class="text-xs text-slate-500 mt-1">Upload an Excel (.xlsx, .xls) spreadsheet to sync records instantly into your Firebase pipeline.</p>
+    </div>
+
+    <div id="status-box" class="hidden text-xs font-semibold p-3 rounded-xl"></div>
+
+    <div id="drop-zone" class="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-2xl p-8 text-center bg-slate-50/50 transition group cursor-pointer">
+      <input type="file" id="file-input" accept=".xlsx, .xls" class="hidden">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto text-slate-400 group-hover:text-blue-500 transition mb-3">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+      </svg>
+      <p class="text-sm font-bold text-slate-700">Click to upload or drag & drop</p>
+      <p class="text-xs text-slate-400 mt-1">Excel formats (.xlsx, .xls) only</p>
+    </div>
+
+    <div id="action-area" class="hidden space-y-4">
+      <div class="bg-blue-50/50 rounded-xl p-4 flex justify-between text-xs text-blue-700 font-bold border border-blue-100">
+        <span>File Loaded: <span id="file-name" class="text-slate-900 font-medium">--</span></span>
+        <span>Rows Parsed: <span id="row-count" class="text-slate-900 font-medium">0</span></span>
+      </div>
+      <button id="btn-import" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-2.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98">
+        Run Firestore Database Sync
+      </button>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+    
+    // 1. IMPORT INITIALIZED INSTANCES FROM YOUR EXTERNAL CONFIG FILE
+    // Adjust the path below ('./js/firebase-config.js') to match your project structure
+    import { db, auth } from "./js/firebase-config.js";
+
+    // DOM Elements
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const actionArea = document.getElementById('action-area');
+    const fileNameDisplay = document.getElementById('file-name');
+    const rowCountDisplay = document.getElementById('row-count');
+    const btnImport = document.getElementById('btn-import');
+    const statusBox = document.getElementById('status-box');
+
+    let currentUser = null;
+    let parsedData = [];
+
+    // Enforce Authentication Guard
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        showStatus("Authenticated safely. Ready for spreadsheet conversion.", "success");
+      } else {
+        showStatus("Authentication required. Please log into CareerCanvas before running this script.", "error");
+        dropZone.style.pointerEvents = 'none';
+        dropZone.classList.add('opacity-50');
+      }
+    });
+
+    // File Input Trigger Hooks
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files));
+
+    // Drag over styling handlers
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50/20'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-500', 'bg-blue-50/20'); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-500', 'bg-blue-50/20');
+      if (e.dataTransfer.files.length > 0) handleFileSelection(e.dataTransfer.files);
+    });
+
+    // Read and parse binary data from Excel
+    function handleFileSelection(file) {
+      if (!file) return;
+      fileNameDisplay.textContent = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        const firstSheetName = workbook.SheetNames;
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        parsedData = XLSX.utils.sheet_to_json(worksheet);
+
+        if (parsedData.length === 0) {
+          showStatus("The selected sheet appears to be blank. Verification failed.", "error");
+          actionArea.classList.add('hidden');
+        } else {
+          rowCountDisplay.textContent = parsedData.length;
+          actionArea.classList.remove('hidden');
+          showStatus("Spreadsheet successfully converted to JSON matrix memory. Inspect your record count before saving.", "success");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Process parsing and batch payload delivery to Firestore
+    btnImport.addEventListener('click', async () => {
+      if (!currentUser || parsedData.length === 0) return;
+      
+      btnImport.disabled = true;
+      btnImport.textContent = "Syncing Data...";
+      showStatus("Writing records to Firestore. Please keep this browser window open...", "success");
+
+      const todayStr = new Date().toISOString().split('T');
+      const collectionPath = `users/${currentUser.uid}/applications`;
+      
+      let batch = writeBatch(db);
+      let operationsCount = 0;
+      let totalSaved = 0;
+
+      try {
+        for (const row of parsedData) {
+          const targetStatus = ["Wishlist", "Applied", "Interviewing", "Offered", "Rejected"].includes(row.Status) ? row.Status : "Applied";
+          const targetLocation = ["Remote", "Hybrid", "Onsite"].includes(row.Location) ? row.Location : "Remote";
+          
+          const appPayload = {
+            companyName: String(row.Company || 'Unknown Company').trim(),
+            jobTitle: String(row.Title || 'Job Title Missing').trim(),
+            minSalary: Number(row.MinSalary) || 0,
+            maxSalary: Number(row.MaxSalary) || 0,
+            requestedSalary: Number(row.TargetSalary) || 0,
+            status: targetStatus,
+            location: targetLocation,
+            url: String(row.URL || '').trim(),
+            notes: String(row.Notes || '').trim(),
+            dateApplied: String(row.DateApplied || todayStr).trim(),
+            lastUpdated: todayStr
+          };
+
+          const newDocRef = doc(collection(db, collectionPath));
+          batch.set(newDocRef, appPayload);
+          
+          operationsCount++;
+          totalSaved++;
+
+          if (operationsCount === 499) {
+            await batch.commit();
+            batch = writeBatch(db);
+            operationsCount = 0;
+          }
+        }
+
+        if (operationsCount > 0) {
+          await batch.commit();
+        }
+
+        showStatus(`Success! Successfully processed and added ${totalSaved} job records directly into your board workflow pipeline!`, "success");
+        actionArea.classList.add('hidden');
+        parsedData = [];
+      } catch (error) {
+        console.error("Firestore Upload Error:", error);
+        showStatus(`Import process halted due to a database exception: ${error.message}`, "error");
+        btnImport.disabled = false;
+        btnImport.textContent = "Run Firestore Database Sync";
+      }
+    });
+
+    function showStatus(msg, type) {
+      statusBox.textContent = msg;
+      statusBox.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200', 'bg-rose-50', 'text-rose-700', 'border-rose-200');
+      
+      if (type === 'success') {
+        statusBox.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-200');
+      } else {
+        statusBox.classList.add('bg-rose-50', 'text-rose-700', 'border', 'border-rose-200');
+      }
+    }
+  </script>
+</body>
+</html>
