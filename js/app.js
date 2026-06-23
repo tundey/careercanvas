@@ -25,7 +25,8 @@ import {
   onSnapshot, 
   query, 
   orderBy, 
-  serverTimestamp  
+  serverTimestamp,
+  where
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 // ==========================================
@@ -180,14 +181,7 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 
   // If the string is corrupt or invalid, Date.parse returns NaN
   if (!isNaN(timestampMs)) {
-    // 2. Safely parse out the components
-	// 2. Safely parse out the indexed array components
-	const appliedParts = cleanDateStr.split('-');
-	const appliedCalendarDate = new Date(
-	  parseInt(appliedParts[0], 10),     // Year (e.g., 2026)
-	  parseInt(appliedParts[1], 10) - 1, // Month (0-indexed, e.g., 6 - 1 = 5 for June)
-	  parseInt(appliedParts[2], 10)      // Day (e.g., 22)
-	);
+	const appliedCalendarDate = new Date(cleanDateStr);
 
     // 3. Get the user's current local calendar date at absolute Midnight
     const today = new Date();
@@ -197,6 +191,8 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
     const diffTime = localTodayCalendarDate - appliedCalendarDate;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
     
+	//debugger;
+	
     if (diffDays <= 0) {
       dateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Today</span>`;
     } else {
@@ -402,7 +398,7 @@ appForm.addEventListener('submit', async (e) => {
   const timestamp = new Date().toISOString();
   const formLastContact = document.getElementById('form-last-contact');
   
-  debugger;
+  //debugger;
 
   const appData = {
     companyName: formCompany.value,
