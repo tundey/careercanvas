@@ -170,8 +170,6 @@ function renderBoard() {
       salaryText = `${minStr} - ${maxStr}`;
     }
 	
-debugger;
-
 // Calculate true calendar day roll-over (With Strict Validation Guard)
 let dateBadgeHtml = '';
 
@@ -340,7 +338,7 @@ async function updateApplicationStatus(appId, newStatus) {
   try {
     await updateDoc(appRef, { 
       status: newStatus,
-      lastUpdated: new Date().toISOString().split('T')[0]
+      lastUpdated: new Date().toISOString().slice(0, 10)
     });
   } catch (err) {
     console.error("Error updating application status:", err);
@@ -400,8 +398,11 @@ appForm.addEventListener('submit', async (e) => {
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
   const day = String(today.getDate()).padStart(2, '0');
-  const timestamp = `${year}-${month}-${day}`; // Always outputs clean local "YYYY-MM-DD"
+  //const timestamp = `${year}-${month}-${day}`; // Always outputs clean local "YYYY-MM-DD"
+  const timestamp = new Date().toISOString();
   const formLastContact = document.getElementById('form-last-contact');
+  
+  debugger;
 
   const appData = {
     companyName: formCompany.value,
@@ -415,9 +416,8 @@ appForm.addEventListener('submit', async (e) => {
     url: formUrl.value,
 	source: formSource.value,
     notes: formNotes.value,
-    lastUpdated: timestamp, 
-	lastContact: formLastContact.value || '',
-	timestamp: serverTimestamp()
+    lastUpdated: serverTimestamp(), 
+	lastContact: formLastContact.value || ''
   };
 
   const collectionRef = collection(db, `users/${currentUser.uid}/applications`);

@@ -42,7 +42,7 @@
   </div>
 
   <script type="module">
-    import { collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import { collection, writeBatch, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
     
     // 1. IMPORT INITIALIZED INSTANCES FROM YOUR EXTERNAL CONFIG FILE
@@ -75,7 +75,7 @@
 
     // File Input Trigger Hooks
     dropZone.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files));
+    fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files[0]));
 
     // Drag over styling handlers
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50/20'); });
@@ -83,26 +83,29 @@
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.classList.remove('border-blue-500', 'bg-blue-50/20');
-      if (e.dataTransfer.files.length > 0) handleFileSelection(e.dataTransfer.files);
+      if (e.dataTransfer.files.length > 0) handleFileSelection(e.dataTransfer.files[0]);
     });
 
     // Read and parse binary data from Excel
     function handleFileSelection(file) {
+	//debugger;
       if (!file) return;
       fileNameDisplay.textContent = file.name;
 
       const reader = new FileReader();
       reader.onload = function(e) {
 	  
-	  debugger;
+	  //debugger;
 	  
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         
-        const firstSheetName = workbook.SheetNames;
+        const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
+		//debugger;
         
         parsedData = XLSX.utils.sheet_to_json(worksheet);
+		//parsedData = XLSX.utils.sheet_to_json(worksheet, { defval: null});
 
         if (parsedData.length === 0) {
           showStatus("The selected sheet appears to be blank. Verification failed.", "error");
@@ -114,7 +117,7 @@
         }
       };
 	  
-	  debugger;
+	  //debugger;
       reader.readAsArrayBuffer(file);
     }
 
@@ -155,20 +158,27 @@
             notes: String(row.Notes || '').trim(),
             dateApplied: String(row.DateApplied || todayStr).trim(),
 			lastContact: String(row.LastContact || '').trim(),
-            lastUpdated: todayStr
+            lastUpdated: serverTimestamp()
           };
-
+debugger;
           const newDocRef = doc(collection(db, collectionPath));
           batch.set(newDocRef, appPayload);
           
           operationsCount++;
           totalSaved++;
+		  // (operationsCount === 499) {
 
-          if (operationsCount === 499) {
+          if (operationsCount === 1) {
             await batch.commit();
             batch = writeBatch(db);
             operationsCount = 0;
           }
+		  
+		  if (operationsCount > 10) {
+		  // limit to 10 records for now
+		  break;
+		  }
+		  
         }
 
         if (operationsCount > 0) {
