@@ -137,6 +137,7 @@ function syncApplications() {
       allApplications.push({ id: doc.id, ...doc.data() });
     });
     renderBoard();
+	attachCardEventListeners();
   }, (error) => {
     console.error("Firestore sync error:", error);
   });
