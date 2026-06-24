@@ -63,7 +63,7 @@ const formLastContact = document.getElementById('form-last-contact');
 
 // Kanban Column Map
 const columns = {
-  'Wishlist': document.getElementById('col-wishlist'),
+  'PreApplication': document.getElementById('col-preapplication'),
   'Applied': document.getElementById('col-applied'),
   'Interviewing': document.getElementById('col-interviewing'),
   'Offered': document.getElementById('col-offered'),
@@ -71,7 +71,7 @@ const columns = {
 };
 
 const counts = {
-  'Wishlist': document.getElementById('count-wishlist'),
+  'PreApplication': document.getElementById('count-preapplication'),
   'Applied': document.getElementById('count-applied'),
   'Interviewing': document.getElementById('count-interviewing'),
   'Offered': document.getElementById('count-offered'),
@@ -154,11 +154,11 @@ function renderBoard() {
   clearBoardUI();
 
   // Temporary structures to hold grouped cards HTML fragments
-  const fragments = { Wishlist: '', Applied: '', Interviewing: '', Offered: '', Rejected: '' };
-  const columnCounts = { Wishlist: 0, Applied: 0, Interviewing: 0, Offered: 0, Rejected: 0 };
+  const fragments = { PreApplication: '', Applied: '', Interviewing: '', Offered: '', Rejected: '' };
+  const columnCounts = { PreApplication: 0, Applied: 0, Interviewing: 0, Offered: 0, Rejected: 0 };
 
   allApplications.forEach(app => {
-    const colName = app.status || 'Wishlist';
+    const colName = app.status || 'PreApplication';
     if (!fragments[colName] === undefined) return;
 
     columnCounts[colName]++;
@@ -236,7 +236,7 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 		
 		<div class="pt-2 flex justify-end">
 		  <select class="status-cycle-select text-[11px] bg-slate-50 border border-slate-200 rounded-md px-1.5 py-0.5 font-medium text-slate-600 focus:outline-hidden cursor-pointer" data-id="${app.id}">
-			<option value="Wishlist" ${colName === 'Wishlist' ? 'selected' : ''}>→ Wishlist</option>
+			<option value="PreApplication" ${colName === 'PreApplication' ? 'selected' : ''}>→ PreApplication</option>
 			<option value="Applied" ${colName === 'Applied' ? 'selected' : ''}>→ Applied</option>
 			<option value="Interviewing" ${colName === 'Interviewing' ? 'selected' : ''}>→ Interviewing</option>
 			<option value="Offered" ${colName === 'Offered' ? 'selected' : ''}>→ Offered</option>
@@ -360,7 +360,7 @@ function openModal(id = null) {
 	  formMinSalary.value = app.minSalary ? formatCurrency(app.minSalary) : '';
 	  formMaxSalary.value = app.maxSalary ? formatCurrency(app.maxSalary) : '';
 	  formRequestedSalary.value = app.requestedSalary ? formatCurrency(app.requestedSalary) : '';
-      formStatus.value = app.status || 'Wishlist';
+      formStatus.value = app.status || 'PreApplication';
       formLocation.value = app.location || 'Remote';
 	  formCityName.value = app.cityName || '';
       formUrl.value = app.url || '';
