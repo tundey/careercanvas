@@ -59,6 +59,7 @@ const formCityName = document.getElementById('form-city-name');
 const formUrl = document.getElementById('form-url');
 const formNotes = document.getElementById('form-notes');
 const formSource = document.getElementById('form-source');
+const formTag = document.getElementById('form-tag');
 const formLastContact = document.getElementById('form-last-contact');
 
 // Kanban Column Map
@@ -150,6 +151,9 @@ function syncApplications() {
 // ==========================================
 // 5. UI RENDERING LOGIC
 // ==========================================
+// ==========================================
+// 5. UI RENDERING LOGIC
+// ==========================================
 function renderBoard() {
   clearBoardUI();
 
@@ -234,6 +238,14 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 		
 		${app.notes ? `<p class="text-xs text-slate-400 line-clamp-2 italic border-t border-slate-50 pt-1.5">${app.notes}</p>` : ''}
 		
+		${app.tag ? `
+          <div class="pt-0.5">
+            <span class="text-[10px] uppercase font-bold border px-2 py-0.5 rounded-md tracking-wider ${app.tag}">
+              🏷️ ${app.tag}
+            </span>
+          </div>		
+		 ` : ''}
+		
 		<div class="pt-2 flex justify-end">
 		  <select class="status-cycle-select text-[11px] bg-slate-50 border border-slate-200 rounded-md px-1.5 py-0.5 font-medium text-slate-600 focus:outline-hidden cursor-pointer" data-id="${app.id}">
 			<option value="PreApplication" ${colName === 'PreApplication' ? 'selected' : ''}>→ PreApplication</option>
@@ -243,7 +255,8 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 			<option value="Rejected" ${colName === 'Rejected' ? 'selected' : ''}>→ Rejected</option>
 		  </select>
 		</div>
-	  </div>
+	  </div>	  
+	  
 	`;
   });
 
@@ -332,8 +345,9 @@ async function updateApplicationStatus(appId, newStatus) {
   if (!currentUser) return;
   const appRef = doc(db, `users/${currentUser.uid}/applications`, appId);
   try {
+	  debugger;
     await updateDoc(appRef, { 
-      status: newStatus,
+      status: newStatus,	  
       lastUpdated: new Date().toISOString().slice(0, 10)
     });
   } catch (err) {
@@ -364,10 +378,18 @@ function openModal(id = null) {
       formLocation.value = app.location || 'Remote';
 	  formCityName.value = app.cityName || '';
       formUrl.value = app.url || '';
-	  formSource.value = app.Source || '';
+	  formSource.value = app.source || '';
+	  formTag.value = app.tag || '';
       formNotes.value = app.notes || '';
-	  formLastContact.value = app.lastContact || '';
       deleteAppBtn.classList.remove('hidden');
+	  
+	  debugger;
+	  const tempLastContact = app.lastContact || '';
+	  if (tempLastContact != ''){
+		  formLastContact.value = new Date(app.lastContact).toISOString().split('T')[0];
+	  }
+	  
+	  debugger;
     }
   }
   formModal.classList.remove('hidden');
@@ -398,8 +420,6 @@ appForm.addEventListener('submit', async (e) => {
   const timestamp = new Date().toISOString();
   const formLastContact = document.getElementById('form-last-contact');
   
-  //debugger;
-
   const appData = {
     companyName: formCompany.value,
     jobTitle: formTitle.value,
@@ -411,6 +431,7 @@ appForm.addEventListener('submit', async (e) => {
 	cityName: formCityName.value,
     url: formUrl.value,
 	source: formSource.value,
+	tag: formTag.value,
     notes: formNotes.value,
     lastUpdated: serverTimestamp(), 
 	lastContact: formLastContact.value || ''
@@ -422,6 +443,7 @@ appForm.addEventListener('submit', async (e) => {
     if (id) {
       // Update Existing
       const docRef = doc(db, `users/${currentUser.uid}/applications`, id);
+	  debugger;
       await updateDoc(docRef, appData);
     } else {
       // Create New

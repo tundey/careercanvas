@@ -150,7 +150,9 @@
             maxSalary: Number(row.MaxSalary) || 0,
             requestedSalary: Number(row.TargetSalary) || 0,
             //status: targetStatus,
-			status: ["Wishlist", "Applied", "Interviewing", "Offered", "Rejected"].includes(row.Status) ? row.Status : "Applied",
+			//status: ["PreApplication", "Applied", "Interviewing", "Offered", "Rejected"].includes(row.Status) ? row.Status : "Applied",
+			status: getCategory(row.Status),
+			tag: ["PreApplication", "Applied", "Interviewing", "Offered", "Rejected"].includes(row.Status) ? "" : toTitleCase(String(row.Status || '').trim()),
             location: targetLocationType,
 			cityName: String(row.Location || '').trim(),
             url: String(row.URL || '').trim(),
@@ -168,16 +170,16 @@ debugger;
           totalSaved++;
 		  // (operationsCount === 499) {
 
-          if (operationsCount === 1) {
+          if (operationsCount === 200) {
             await batch.commit();
             batch = writeBatch(db);
             operationsCount = 0;
           }
 		  
-		  if (operationsCount > 10) {
+		  //if (operationsCount > 10) {
 		  // limit to 10 records for now
-		  break;
-		  }
+		  //break;
+		  //}
 		  
         }
 
@@ -206,6 +208,46 @@ debugger;
         statusBox.classList.add('bg-rose-50', 'text-rose-700', 'border', 'border-rose-200');
       }
     }
+	
+// 1. Define your map with lowercase keys for easy matching
+const statusToCategoryMap = {
+  // Applied
+  'applied': 'Applied',
+  'under review': 'Applied',
+
+  // Interviewing
+  'interviewing': 'Interviewing',
+  'follow-up sent': 'Interviewing',
+  'awaiting response': 'Interviewing',
+  'on hold': 'Interviewing',
+
+  // Offered
+  'offer extended': 'Offered',
+  'offer accepted': 'Offered',
+  'start date confirmed': 'Offered',
+
+  // Rejected
+  'position filled': 'Rejected',
+  'not selected': 'Rejected'
+};
+
+// 2. Normalize the input using .toLowerCase() and .trim()
+function getCategory(status) {
+  if (!status) return 'Unknown Category';
+  
+  // Convert to lowercase and remove any accidental edge whitespace
+  const normalizedStatus = status.toLowerCase().trim();
+  
+  return statusToCategoryMap[normalizedStatus] || 'Unknown Category';
+}
+
+
+function toTitleCase(str) {
+  return str
+    .toLowerCase()
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
   </script>
 </body>
 </html>

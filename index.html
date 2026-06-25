@@ -145,11 +145,11 @@
         </div>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 		  <div>
-			<label for="form-title" class="block font-semibold text-slate-700 mb-1">Job Title</label>
+			<label for="form-title" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Job Title</label>
 			<input type="text" id="form-title" placeholder="e.g., Senior Software Engineer" required class="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:border-blue-500 focus:outline-hidden transition">
 		  </div>
 		  <div>
-			<label for="form-last-contact" class="block font-semibold text-slate-700 mb-1">Last Contact Date</label>
+			<label for="form-last-contact" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Last Contact Date</label>
 			<input type="date" id="form-last-contact" class="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:border-blue-500 focus:outline-hidden transition text-slate-700">
 		  </div>
 		</div>	
@@ -168,16 +168,43 @@
 			  </div>		  
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
-            <select id="form-status" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-hidden focus:border-blue-500">
-              <option value="PreApplication">PreApplication</option>
-              <option value="Applied">Applied</option>
-              <option value="Interviewing">Interviewing</option>
-              <option value="Offered">Offered</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
+		<div class="mb-4">
+		  <label for="form-status" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
+		  <select id="form-status" class="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:border-blue-500 focus:outline-hidden transition cursor-pointer">
+			<option value="Pre-Application">Pre-Application</option>
+			<option value="Applied">Applied</option>
+			<option value="Interviewing">Interviewing</option>
+			<option value="Offered">Offered</option>
+			<option value="Rejected">Rejected</option>
+		  </select>
+		</div>
+
+		<div class="mb-4">
+		  <label for="form-tag" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Sub-Status</label>
+		  <select id="form-tag" class="w-full border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:border-blue-500 focus:outline-hidden transition cursor-pointer">
+			<option value="">-- No Tag assigned --</option>
+			<optgroup label="Applied Phase Milestones">
+			  <option value="Applied>Applied</option>
+			  <option value="Under Review">Under Review</option>
+			</optgroup>
+			<optgroup label="Interviewing Milestones">
+			  <option value="Interviewing">Interviewing</option>
+			  <option value="Follow-Up Sent">Follow-Up Sent</option>
+			  <option value="Awaiting Response">Awaiting Response</option>
+			  <option value="On Hold">On Hold</option>
+			</optgroup>
+			<optgroup label="Offered Milestones">
+			  <option value="Offer Extended">Offer Extended</option>
+			  <option value="Offer Accepted">Offer Accepted</option>
+			  <option value="Start Date Confirmed">Start Date Confirmed</option>
+			</optgroup>
+			<optgroup label="Rejected Phase Milestones">
+			  <option value="Position Filled">Position Filled</option>
+			  <option value="Not Selected">Not Selected</option>
+			</optgroup>
+		  </select>
+		</div>
+		</div>
 		<div class="grid grid-cols-2 gap-4">
 		  <div>
 			<label for="form-city-name" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Location</label>
@@ -192,7 +219,7 @@
 			</select>
 		  </div>
 		</div>
-        </div>
+       
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Job Post URL</label>
           <input type="url" id="form-url" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-hidden focus:border-blue-500">
