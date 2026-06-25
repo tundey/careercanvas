@@ -82,6 +82,10 @@ const counts = {
 // Application State Cache
 let currentUser = null;
 let unsubscribeSnapshot = null;
+// Master raw data cache streaming straight from the database
+let rawApplicationsCache = [];
+
+// Your existing global array that renderBoard() reads from
 let allApplications = [];
 
 // Live auto-formatting while typing
@@ -110,19 +114,69 @@ logoutBtn.addEventListener('click', () => {
   signOut(auth).catch(err => console.error("Logout failed:", err));
 });
 
-// Handle user login/logout states
+//import { onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+//import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+//import { db, auth } from "./firebase-config.js";
+
+//import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+//import { auth } from "./firebase-config.js";
+
+// Helper function to calculate a clean date string (30 days ago) matching YYYY-MM-DD
+function getPastDateString(daysAgo) {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return date.toISOString().slice(0, 10);
+}
+
+// --- Dynamic Auth and Synchronizer System Wire Hook ---
 onAuthStateChanged(auth, (user) => {
+	
+	//debugger;
+	
   if (user) {
-    currentUser = user;
+    const dateInput = document.getElementById('filter-start-date');
+    
+    // 1. Establish your default 30-day filter setting if not set manually yet
+    if (dateInput && !dateInput.value) {
+      dateInput.value = getPastDateString(30);
+    }
+
+    // 2. Open your live data subscription line channel using modular syntax
+    onSnapshot(collection(db, `users/${user.uid}/applications`), (snapshot) => {
+      rawApplicationsCache = [];
+      snapshot.forEach(doc => {
+        rawApplicationsCache.push({ id: doc.id, ...doc.data() });
+      });
+
+//debugger;
+      // Pass current assets into the filtering engine matrix
+      applyDateFilter();
+      
+    }, (error) => {
+      console.error("Board sync stream failed:", error);
+    });
+
+    // 3. Watch for the user changing the date selector calendar dropdown box elements
+    if (dateInput) {
+      // Remove any lingering duplicate event bindings cleanly
+      dateInput.replaceWith(dateInput.cloneNode(true));
+      const activeDateInput = document.getElementById('filter-start-date');
+      
+      activeDateInput.addEventListener('change', () => {
+        applyDateFilter();
+      });
+    }
+	
     authContainer.classList.add('hidden');
-    appContainer.classList.remove('hidden');
-    syncApplications();
+    appContainer.classList.remove('hidden');	
+
   } else {
-    currentUser = null;
-    if (unsubscribeSnapshot) unsubscribeSnapshot();
+    // Clear state structures on safe user logouts
+    rawApplicationsCache = [];
+    allApplications = [];
     appContainer.classList.add('hidden');
     authContainer.classList.remove('hidden');
-    clearBoardUI();
+    renderBoard();
   }
 });
 
@@ -157,6 +211,7 @@ function syncApplications() {
 function renderBoard() {
   clearBoardUI();
 
+//debugger;
   // Temporary structures to hold grouped cards HTML fragments
   const fragments = { PreApplication: '', Applied: '', Interviewing: '', Offered: '', Rejected: '' };
   const columnCounts = { PreApplication: 0, Applied: 0, Interviewing: 0, Offered: 0, Rejected: 0 };
@@ -345,7 +400,6 @@ async function updateApplicationStatus(appId, newStatus) {
   if (!currentUser) return;
   const appRef = doc(db, `users/${currentUser.uid}/applications`, appId);
   try {
-	  debugger;
     await updateDoc(appRef, { 
       status: newStatus,	  
       lastUpdated: new Date().toISOString().slice(0, 10)
@@ -382,14 +436,11 @@ function openModal(id = null) {
 	  formTag.value = app.tag || '';
       formNotes.value = app.notes || '';
       deleteAppBtn.classList.remove('hidden');
-	  
-	  debugger;
+
 	  const tempLastContact = app.lastContact || '';
 	  if (tempLastContact != ''){
 		  formLastContact.value = new Date(app.lastContact).toISOString().split('T')[0];
 	  }
-	  
-	  debugger;
     }
   }
   formModal.classList.remove('hidden');
@@ -443,7 +494,6 @@ appForm.addEventListener('submit', async (e) => {
     if (id) {
       // Update Existing
       const docRef = doc(db, `users/${currentUser.uid}/applications`, id);
-	  debugger;
       await updateDoc(docRef, appData);
     } else {
       // Create New
@@ -496,4 +546,41 @@ function parseCurrencyToNumber(value) {
   if (!value) return null;
   const cleanValue = String(value).replace(/\D/g, '');
   return cleanValue ? Number(cleanValue) : null;
+}
+
+/**
+ * Filters the master raw applications cache based on the selected calendar cutoff date,
+ * populating the global allApplications array by evaluating formal JavaScript Date objects.
+ */
+function applyDateFilter() {
+	debugger;
+	
+	const dateInput = document.getElementById('filter-start-date');
+
+  if (!dateInput || !dateInput.value) return;
+
+  // 1. Parse the calendar selector input string into a local Date object
+  // Adding 'T00:00:00' locks it to local time rather than defaulting to UTC midnight
+  const cutoffDate = new Date(dateInput.value + 'T00:00:00');
+  cutoffDate.setHours(0, 0, 0, 0); // Clear out timestamps for uniform comparison
+
+  allApplications = rawApplicationsCache.filter(app => {
+    if (!app.dateApplied || app.dateApplied.trim() === '') return false;
+
+    // 2. Convert the individual application's string date into a formal Date object
+    const applicationDate = new Date(app.dateApplied);
+    applicationDate.setHours(0, 0, 0, 0); // Clear out timestamps here as well
+	
+	debugger;
+
+    // 3. Compare the absolute numerical millisecond values directly
+    return applicationDate.getTime() >= cutoffDate.getTime();
+  });
+
+  // 4. Redraw the board using the fresh data array subset
+  renderBoard();
+  
+  if (typeof attachCardEventListeners === "function") {
+    attachCardEventListeners();
+  }
 }
