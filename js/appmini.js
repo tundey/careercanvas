@@ -474,6 +474,7 @@ onAuthStateChanged(auth, (user) => {
   } else {
     // Hide panel shell assets cleanly on user session closure logouts
     if (menuContainer) menuContainer.classList.add('hidden');
+	window.location.replace("index.html");
   }
 });
 

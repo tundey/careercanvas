@@ -1,5 +1,5 @@
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { db, auth } from "./firebase-config.js";
 
 // Master Caches
@@ -303,3 +303,94 @@ if (searchCompanyInput) {
 if (searchTitleInput) {
   searchTitleInput.addEventListener("input", () => applyListFilters());
 }
+
+// --- Profile Menu Module Component Event Coordinator ---
+onAuthStateChanged(auth, (user) => {
+  const menuContainer = document.getElementById('profile-menu-container');
+  
+  if (user) {
+    // 1. Reveal the profile menu structure context block shell container wrapper
+    if (menuContainer) menuContainer.classList.remove('hidden');
+
+    // 2. Extract and resolve display name metadata configurations
+    const rawName = user.displayName || user.email.split('@');
+    const cleanedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    let initials = cleanedName.substring(0, 2).toUpperCase();
+	if (cleanedName.indexOf(' ') > 0) {
+		initials = user.displayName.split(' ')[0][0] + user.displayName.split(' ')[1][0];
+	}
+
+    // 3. Inject identity string values into DOM metrics elements safely
+    const elName = document.getElementById('profile-display-name');
+    const elInitials = document.getElementById('profile-avatar-initials');
+    const elEmail = document.getElementById('profile-dropdown-email');
+
+    if (elName) elName.textContent = cleanedName;
+    if (elInitials) elInitials.textContent = initials;
+    if (elEmail) elEmail.textContent = user.email;
+
+    // 4. Initialize click bindings to support open/close state animations toggles
+    initProfileDropdownInteractions();
+
+  } else {
+    // Hide panel shell assets cleanly on user session closure logouts
+    if (menuContainer) menuContainer.classList.add('hidden');
+  }
+});
+
+/**
+ * Attaches the complete interface event listeners required to operate 
+ * the responsive floating drop-down panel matrix mechanics safely.
+ */
+function initProfileDropdownInteractions() {
+  const trigger = document.getElementById('profile-menu-trigger');
+  const dropdown = document.getElementById('profile-dropdown-card');
+  const chevron = document.getElementById('profile-chevron');
+  const logoutBtn = document.getElementById('btn-profile-logout');
+
+  if (!trigger || !dropdown) return;
+
+  // Toggle dropdown visibility visibility layout configuration variables
+  function toggleDropdown(isOpen) {
+    if (isOpen) {
+      dropdown.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+      dropdown.classList.add('opacity-100', 'pointer-events-auto', 'scale-100');
+      if (chevron) chevron.classList.add('rotate-180');
+    } else {
+      dropdown.classList.remove('opacity-100', 'pointer-events-auto', 'scale-100');
+      dropdown.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+      if (chevron) chevron.classList.remove('rotate-180');
+    }
+  }
+
+  // Handle Trigger Button Clicks
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isCurrentlyOpen = dropdown.classList.contains('opacity-100');
+    toggleDropdown(!isCurrentlyOpen);
+  });
+
+  // Automatically close dropdown menu if user clicks anywhere else outside the frame layout bounds
+  document.addEventListener('click', (e) => {
+    if (!trigger.contains(e.target) && !dropdown.contains(e.target)) {
+      toggleDropdown(false);
+    }
+  });
+
+  // Handle Logout Execution Line Channels
+  if (logoutBtn) {
+    // Strip duplicate event lines
+    logoutBtn.replaceWith(logoutBtn.cloneNode(true));
+    const cleanLogoutBtn = document.getElementById('btn-profile-logout');
+    
+    cleanLogoutBtn.addEventListener('click', () => {
+      signOut(auth)
+        .then(() => {
+          console.log("Session detached safely.");
+          window.location.replace("index.html");
+        })
+        .catch((err) => console.error("Sign-out process failure tracking log:", err));
+    });
+  }
+}
+
