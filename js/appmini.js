@@ -83,26 +83,6 @@ const counts = {
 // Application State Cache
 let currentUser = null;
 let unsubscribeSnapshot = null;
-// Master raw data cache streaming straight from the database
-let rawApplicationsCache = [];
-
-// Your existing global array that renderBoard() reads from
-let allApplications = [];
-
-// Live auto-formatting while typing
-[formMinSalary, formMaxSalary, formRequestedSalary].forEach(input => {
-  input.addEventListener('input', (e) => {
-    // Save the cursor position to prevent jumping bugs
-    const cursorPosition = e.target.selectionStart;
-    const originalLength = e.target.value.length;
-    
-    e.target.value = formatCurrency(e.target.value);
-    
-    // Adjust cursor placement smoothly after injecting characters
-    const newLength = e.target.value.length;
-    e.target.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
-  });
-});
 
 // ==========================================
 // 3. AUTHENTICATION WORKFLOW
@@ -125,48 +105,14 @@ function getPastDateString(daysAgo) {
 // --- Dynamic Auth and Synchronizer System Wire Hook ---
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    const dateInput = document.getElementById('filter-start-date');
-    
-    // 1. Establish your default 30-day filter setting if not set manually yet
-    if (dateInput && !dateInput.value) {
-      dateInput.value = getPastDateString(30);
-    }
 
-    // 2. Open your live data subscription line channel using modular syntax
-    onSnapshot(collection(db, `users/${user.uid}/applications`), (snapshot) => {
-      rawApplicationsCache = [];
-      snapshot.forEach(doc => {
-        rawApplicationsCache.push({ id: doc.id, ...doc.data() });
-      });
-
-      // Pass current assets into the filtering engine matrix
-      applyDateFilter();
-      
-    }, (error) => {
-      console.error("Board sync stream failed:", error);
-    });
-
-    // 3. Watch for the user changing the date selector calendar dropdown box elements
-    if (dateInput) {
-      // Remove any lingering duplicate event bindings cleanly
-      dateInput.replaceWith(dateInput.cloneNode(true));
-      const activeDateInput = document.getElementById('filter-start-date');
-      
-      activeDateInput.addEventListener('change', () => {
-        applyDateFilter();
-      });
-    }
-	
     authContainer.classList.add('hidden');
     appContainer.classList.remove('hidden');	
 
   } else {
     // Clear state structures on safe user logouts
-    rawApplicationsCache = [];
-    allApplications = [];
     appContainer.classList.add('hidden');
     authContainer.classList.remove('hidden');
-    renderBoard();
   }
 });
 
@@ -409,7 +355,7 @@ function openModal(id = null) {
     const app = allApplications.find(a => a.id === id);
     if (app) {
       formAppId.value = app.id;
-      modalTitle.textContent = `Edit ${app.companyName}`;
+      modalTitle.textContent = `Edit ${app.companyName}; ${app.dateApplied}`;
       formCompany.value = app.companyName;
       formTitle.value = app.jobTitle;
 	  formMinSalary.value = app.minSalary ? formatCurrency(app.minSalary) : '';
@@ -442,75 +388,10 @@ function closeModal() {
   formModal.classList.add('hidden');
 }
 
-addAppBtn.addEventListener('click', () => openModal());
-closeModalBtn.addEventListener('click', closeModal);
-cancelModalBtn.addEventListener('click', closeModal);
 
 // ==========================================
 // 7. FORM CRUD ACTION
 // ==========================================
-appForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  if (!currentUser) return;
-
-  const id = formAppId.value;
-  // 1. GENERATE TIMESTAMP BASED ON YOUR LOCAL CALENDAR DATE (NOT UTC)
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-  const day = String(today.getDate()).padStart(2, '0');
-  //const timestamp = `${year}-${month}-${day}`; // Always outputs clean local "YYYY-MM-DD"
-  const timestamp = new Date().toISOString();
-  const formLastContact = document.getElementById('form-last-contact');
-  
-  const appData = {
-    companyName: formCompany.value,
-    jobTitle: formTitle.value,
-    minSalary: parseCurrencyToNumber(formMinSalary.value),
-    maxSalary: parseCurrencyToNumber(formMaxSalary.value),
-    requestedSalary: parseCurrencyToNumber(formRequestedSalary.value), 
-    status: formStatus.value,
-    location: formLocation.value,
-	cityName: formCityName.value,
-    url: formUrl.value,
-	source: formSource.value,
-	tag: formTag.value,
-    notes: formNotes.value,
-    lastUpdated: serverTimestamp(), 
-	lastContact: formLastContact.value || ''
-  };
-
-  const collectionRef = collection(db, `users/${currentUser.uid}/applications`);
-
-  try {
-    if (id) {
-      // Update Existing
-      const docRef = doc(db, `users/${currentUser.uid}/applications`, id);
-      await updateDoc(docRef, appData);
-    } else {
-      // Create New
-      appData.dateApplied = timestamp;
-      await addDoc(collectionRef, appData);
-    }
-    closeModal();
-  } catch (err) {
-    console.error("Error saving data: ", err);
-  }
-});
-
-// Delete Record Action
-deleteAppBtn.addEventListener('click', async () => {
-  const id = formAppId.value;
-  if (id && currentUser && confirm("Are you sure you want to remove this application?")) {
-    try {
-      const docRef = doc(db, `users/${currentUser.uid}/applications`, id);
-      await deleteDoc(docRef);
-      closeModal();
-    } catch (err) {
-      console.error("Error deleting data: ", err);
-    }
-  }
-});
 
 // Helper: Convert a raw number or numeric string to a clean currency format ($130,000)
 function formatCurrency(value) {
