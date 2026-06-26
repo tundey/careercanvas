@@ -3,80 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Application Tracking List</title>
-  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <title>CareerCanvas - List View</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='5' width='28' height='22' rx='6' fill='%232563eb'/%3E%3Crect x='7' y='11' width='4' height='10' rx='1' fill='%23ffffff' fill-opacity='0.5'/%3E%3Crect x='14' y='11' width='4' height='13' rx='1' fill='%23ffffff'/%3E%3Crect x='21' y='11' width='4' height='7' rx='1' fill='%23ffffff' fill-opacity='0.7'/%3E%3C/svg%3E">    
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+<body class="bg-slate-50 min-h-screen text-slate-800">
 
-  <!-- Application Global Navigation Navbar -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-xl">📋</span>
-        <h1 class="font-bold text-lg text-slate-900 tracking-tight">Applications Master List</h1>
-      </div>
-      <a href="index.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition">
-        🫲 Back to Kanban Board
+  <nav class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-xs">
+
+	<div class="flex items-center gap-3">
+	  <!-- CareerCanvas SVG Logo -->
+	  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-8 h-8 drop-shadow-xs">
+		<!-- Main structural canvas shape with smooth rounded corners -->
+		<rect x="2" y="5" width="28" height="22" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+		<!-- Handle/Top clip accent -->
+		<path d="M11 5V3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+		<!-- Kanban Column 1 (PreApplication/Applied) -->
+		<rect x="7" y="10" width="4" height="12" rx="1.5" fill="#3b82f6"/>
+		<!-- Kanban Column 2 (Interviewing - highlighted peak phase) -->
+		<rect x="14" y="10" width="4" height="14" rx="1.5" fill="#2563eb"/>
+		<!-- Kanban Column 3 (Offered) -->
+		<rect x="21" y="10" width="4" height="9" rx="1.5" fill="#60a5fa"/>
+	  </svg>
+	  
+	  <h1 class="text-xl font-black tracking-tight text-slate-900">Career<span class="text-blue-600">Canvas</span></h1>
+	</div>	
+	
+    <div class="flex items-center gap-3">
+		<span class="text-xl">📋</span>
+      <h1 class="text-lg font-bold text-slate-900 tracking-tight">Applications</h1>
+    </div>	
+    
+    <div class="flex items-center gap-4">
+      <a href="index.html" class="text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 px-3.5 py-2 rounded-xl transition">
+        ← Back to Kanban Board
       </a>
+      <div id="profile-menu-container" class="relative hidden">
+        <button type="button" id="profile-menu-trigger" class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition cursor-pointer">
+          <div class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold uppercase" id="profile-avatar-initials">--</div>
+          <span id="profile-display-name" class="text-sm font-bold text-slate-700 max-w-[120px] truncate">Loading...</span>
+        </button>
+      </div>
     </div>
-  </header>
+  </nav>
 
-  <!-- Main View Frame -->
-  <main class="flex-1 w-full max-w-7xl mx-auto px-6 py-8 box-border">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-	
-<div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 mb-6 text-sm shadow-xs">
-  <div class="flex items-center gap-3">
-    <span class="font-bold text-slate-700">🗂️ Group View By:</span>
-    <div class="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200">
-      <button type="button" id="btn-group-none" class="group-toggle-btn px-4 py-1.5 rounded-md font-semibold text-xs transition duration-150 bg-white text-slate-800 shadow-xs">
-        None (Flat List)
-      </button>
-      <button type="button" id="btn-group-company" class="group-toggle-btn px-4 py-1.5 rounded-md font-semibold text-xs transition duration-150 text-slate-600 hover:text-slate-900">
-        Company
-      </button>
-      <button type="button" id="btn-group-status" class="group-toggle-btn px-4 py-1.5 rounded-md font-semibold text-xs transition duration-150 text-slate-600 hover:text-slate-900">
-        Status
-      </button>
+  <main class="max-w-7xl mx-auto p-6 lg:p-8">
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 mb-6 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        
+        <div class="flex items-center gap-2.5 text-sm">
+          <span class="font-bold text-slate-700">🗂️ Group By:</span>
+          <div class="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200">
+            <button type="button" id="btn-group-none" class="group-btn px-3.5 py-1.5 rounded-md font-semibold text-xs bg-white text-slate-800 shadow-xs transition">Flat List</button>
+            <button type="button" id="btn-group-company" class="group-btn px-3.5 py-1.5 rounded-md font-semibold text-xs text-slate-600 hover:text-slate-900 transition">Company</button>
+            <button type="button" id="btn-group-status" class="group-btn px-3.5 py-1.5 rounded-md font-semibold text-xs text-slate-600 hover:text-slate-900 transition">Stage</button>
+            <button type="button" id="btn-group-tag" class="group-btn px-3.5 py-1.5 rounded-md font-semibold text-xs text-slate-600 hover:text-slate-900 transition">Sub-Tag</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 text-sm">
+          <label for="filter-start-date" class="font-bold text-slate-700 whitespace-nowrap">📅 Show since:</label>
+          <input type="date" id="filter-start-date" class="border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 font-medium focus:outline-hidden focus:border-blue-500 transition cursor-pointer">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-400 font-medium">
+        <div id="group-summary-badge" class="italic">Initializing data filters...</div>
+        <div id="record-count-badge" class="font-bold text-slate-500">0 records matching parameters</div>
+      </div>
     </div>
-  </div>
-  <div id="group-summary-badge" class="text-xs text-slate-400 italic"></div>
-</div>
-	
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[800px]">
-          
-          <!-- Interactive Sortable Headings -->
-          <thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase text-slate-500 tracking-wider">
-            <tr>
-              <th class="sortable-header p-4 cursor-pointer select-none hover:bg-slate-100 hover:text-slate-900 transition" data-sort="companyName">
-                Company <span class="sort-icon inline-block w-3 ml-1 text-slate-400"></span>
-              </th>
-              <th class="sortable-header p-4 cursor-pointer select-none hover:bg-slate-100 hover:text-slate-900 transition" data-sort="jobTitle">
-                Job Title <span class="sort-icon inline-block w-3 ml-1 text-slate-400"></span>
-              </th>
-              <th class="sortable-header p-4 cursor-pointer select-none hover:bg-slate-100 hover:text-slate-900 transition" data-sort="status">
-                Status <span class="sort-icon inline-block w-3 ml-1 text-slate-400"></span>
-              </th>
-              <th class="sortable-header p-4 cursor-pointer select-none hover:bg-slate-100 hover:text-slate-900 transition" data-sort="location">
-                Location <span class="sort-icon inline-block w-3 ml-1 text-slate-400"></span>
-              </th>
-              <th class="sortable-header p-4 cursor-pointer select-none hover:bg-slate-100 hover:text-slate-900 transition" data-sort="dateApplied">
-                Date Applied <span class="sort-icon inline-block w-3 ml-1 text-slate-400"></span>
-              </th>
-            </tr>
-          </thead>
-          
-          <!-- Dynamic Target Body Injection Node -->
+        <table class="w-full text-left border-collapse min-w-[950px]">
+		<thead class="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase text-slate-500 tracking-wider select-none">
+		  <tr>
+			<th class="p-4 border-r border-slate-200/60 min-w-[220px]">
+			  <div class="sortable-header flex items-center justify-between cursor-pointer hover:text-slate-900 transition mb-2" data-sort="companyName">
+				<span>Company</span> <span class="sort-icon"></span>
+			  </div>
+			  <input type="text" id="filter-search-company" placeholder="🔍 Filter company..." class="w-full text-xs font-normal lowercase p-2 border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-hidden focus:border-blue-500 transition normal-case">
+			</th>
+
+			<th class="p-4 border-r border-slate-200/60 min-w-[220px]">
+			  <div class="sortable-header flex items-center justify-between cursor-pointer hover:text-slate-900 transition mb-2" data-sort="jobTitle">
+				<span>Job Title</span> <span class="sort-icon"></span>
+			  </div>
+			  <input type="text" id="filter-search-title" placeholder="🔍 Filter position..." class="w-full text-xs font-normal lowercase p-2 border border-slate-200 rounded-lg bg-white text-slate-700 placeholder-slate-400 focus:outline-hidden focus:border-blue-500 transition normal-case">
+			</th>
+
+			<th class="sortable-header p-4 cursor-pointer hover:bg-slate-100 transition" data-sort="status">Pipeline Stage <span class="sort-icon"></span></th>
+			<th class="sortable-header p-4 cursor-pointer hover:bg-slate-100 transition" data-sort="tag">Sub-Status Tag <span class="sort-icon"></span></th>
+			<th class="sortable-header p-4 cursor-pointer hover:bg-slate-100 transition" data-sort="locationType">Location <span class="sort-icon"></span></th>
+			<th class="sortable-header p-4 cursor-pointer hover:bg-slate-100 transition" data-sort="dateApplied">Date Applied <span class="sort-icon"></span></th>
+		  </tr>
+		</thead>
           <tbody id="list-table-body" class="divide-y divide-slate-200 text-sm text-slate-700">
             <tr>
-              <td colspan="5" class="p-8 text-center text-slate-400 font-medium">Syncing database assets...</td>
+              <td colspan="6" class="p-12 text-center text-slate-400 font-medium bg-white">Syncing tracking history logs...</td>
             </tr>
           </tbody>
-
         </table>
       </div>
     </div>
+
   </main>
 
   <script type="module" src="js/list.js"></script>

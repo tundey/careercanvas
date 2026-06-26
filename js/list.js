@@ -1,270 +1,305 @@
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { db, auth } from "./firebase-config.js";
 
-// Memory storage cache for handling fast client-side UI manipulation sorting routines
-let datasetCache = [];
-let activeSortField = "dateApplied"; // Start default sorted by applied date
-let isAscendingOrder = false;       // Newest applications display at top first
+// Master Caches
+let rawApplicationsCache = []; // Untouched Firestore documents stream
+let filteredApplications = [];  // Filtered down using Date metrics values
 
-// Track the explicit sorting vector (true = Ascending, false = Descending) for each individual column field
+// View States Configuration States
+let activeSortField = "dateApplied";
+let activeGroupingMode = "none"; // Values: "none", "companyName", "status", "tag"
+
+// Fully decoupled independent bi-directional sorting history records matrix maps
 const columnSortDirections = {
-  companyName: false,
+  companyName: true,
   jobTitle: true,
   status: true,
-  location: true,
-  dateApplied: false // Start date tracking looking at newest submissions first
+  tag: true,
+  locationType: true,
+  dateApplied: false // Show newest additions first by default
 };
 
+// DOM Node References
 const tableBody = document.getElementById("list-table-body");
-
-/**
- * Builds the actual table HTML body markup using current sorting definitions
- */
-//import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-//import { db, auth } from "./firebase-config.js";
-
-//let datasetCache = [];
-//let activeSortField = "dateApplied"; 
-//let isAscendingOrder = false;       
-let activeGroupingMode = "none"; // Options: "none", "companyName", "status"
-
-//const tableBody = document.getElementById("list-table-body");
 const groupSummaryBadge = document.getElementById("group-summary-badge");
+const recordCountBadge = document.getElementById("record-count-badge");
+const dateInput = document.getElementById("filter-start-date");
 
-/**
- * Builds standard individual data row markup strings
- */
-function buildRowHtml(app) {
-  const company = app.companyName || "Unknown Company";
-  const title = app.jobTitle || "Untitled Position";
-  const status = app.status || "Pre-Application";
-  const locationStr = app.location ? `${app.locationType || "Onsite"} (${app.location})` : (app.locationType || "Remote");
-  const dateStr = app.dateApplied || "—";
-
-  let statusClass = "bg-slate-100 text-slate-700";
-  if (status === "Applied") statusClass = "bg-blue-50 text-blue-700 border-blue-100 border";
-  if (status === "Interviewing") statusClass = "bg-amber-50 text-amber-700 border-amber-100 border";
-  if (status === "Offered") statusClass = "bg-emerald-50 text-emerald-700 border-emerald-100 border font-medium";
-  if (status === "Rejected") statusClass = "bg-rose-50 text-rose-700 border-rose-100 border";
-
-  return `
-    <tr class="hover:bg-slate-50/70 transition-colors">
-      <td class="p-4 font-bold text-slate-900">${company}</td>
-      <td class="p-4 text-slate-600 font-medium">${title}</td>
-      <td class="p-4">
-        <span class="text-xs px-2.5 py-1 rounded-md font-semibold tracking-wide ${statusClass}">
-          ${status}
-        </span>
-      </td>
-      <td class="p-4 text-slate-500 font-medium">${locationStr}</td>
-      <td class="p-4 text-slate-500 font-mono font-medium">${dateStr}</td>
-    </tr>
-  `;
+// Helper function to calculate a default 30-day lookback date string (YYYY-MM-DD)
+function getPastDateString(daysAgo) {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return date.toISOString().slice(0, 10);
 }
 
 /**
- * Renders the list table supporting flat views or categorized grouped structures
+ * 1. Filtering Module: Evaluates calendar dates as formal JS Date objects
+ * along with real-time case-insensitive free-form text search terms.
  */
-function renderListTable() {
-  if (datasetCache.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 font-medium bg-white">No applications tracked in this view pipeline yet.</td></tr>`;
-    groupSummaryBadge.textContent = "";
-    return;
-  }
+function applyListFilters() {
+  if (!dateInput || !dateInput.value) return;
 
-  // OPTION A: Standard flat layout rendering pattern
-  if (activeGroupingMode === "none") {
-    groupSummaryBadge.textContent = "Showing standard flat master track roster";
-    tableBody.innerHTML = datasetCache.map(app => buildRowHtml(app)).join("");
-    return;
-  }
+  // Gather text input field node references
+  const searchCompanyInput = document.getElementById("filter-search-company");
+  const searchTitleInput = document.getElementById("filter-search-title");
 
-  // OPTION B: Cluster categorization grouping pattern
-  groupSummaryBadge.textContent = `Grouped records by application ${activeGroupingMode === "companyName" ? "company labels" : "pipeline stages"}`;
+  // Read clean lowercase filter string query parameters
+  const companyQuery = searchCompanyInput ? searchCompanyInput.value.toLowerCase().trim() : "";
+  const titleQuery = searchTitleInput ? searchTitleInput.value.toLowerCase().trim() : "";
 
-  // 1. Cluster documents into dictionary map lists
-  const groupedBuckets = {};
-  datasetCache.forEach(app => {
-    const rawKeyValue = app[activeGroupingMode];
-    const groupKey = rawKeyValue ? rawKeyValue.trim() : (activeGroupingMode === "companyName" ? "Unassigned Company" : "Pre-Application");
+  // Build local midnight instance matching cutoff values exactly
+  const cutoffDate = new Date(dateInput.value + "T00:00:00");
+  cutoffDate.setHours(0, 0, 0, 0);
+
+  // Filter local document arrays cache
+  filteredApplications = rawApplicationsCache.filter(app => {
+    // A. Verify Date constraints first
+    if (!app.dateApplied || app.dateApplied.trim() === '') return false;
+    const applicationDate = new Date(app.dateApplied.trim() + "T00:00:00");
+    applicationDate.setHours(0, 0, 0, 0);
     
-    if (!groupedBuckets[groupKey]) {
-      groupedBuckets[groupKey] = [];
-    }
-    groupedBuckets[groupKey].push(app);
+    if (applicationDate.getTime() < cutoffDate.getTime()) return false;
+
+    // B. Check free-form Text Search conditions (Fuzzy string parsing match checks)
+    const appCompany = (app.companyName || "").toLowerCase();
+    const appTitle = (app.jobTitle || "").toLowerCase();
+
+    if (companyQuery !== "" && !appCompany.includes(companyQuery)) return false;
+    if (titleQuery !== "" && !appTitle.includes(titleQuery)) return false;
+
+    return true; // Document passed all requirements successfully
   });
 
-  // 2. Sort the cluster header keys alphabetically so order remains predictable
-  const sortedGroupKeys = Object.keys(groupedBuckets).sort((a, b) => a.localeCompare(b));
+  if (recordCountBadge) {
+    recordCountBadge.textContent = `${filteredApplications.length} records matching parameters`;
+  }
 
-  // 3. Assemble markup containing custom separator header elements
-  let finalAssembledHtml = "";
-  
-  sortedGroupKeys.forEach(groupTitle => {
-    const recordsInGroup = groupedBuckets[groupTitle];
-    
-    // Inject a full-width subheader divider separating data rows
-    finalAssembledHtml += `
-      <tr class="bg-slate-100/80 border-y border-slate-200 select-none">
-        <td colspan="5" class="p-3 text-xs font-bold uppercase tracking-wider text-slate-600 px-4">
-          📁 ${groupTitle} <span class="ml-1 text-[11px] font-semibold text-slate-400">(${recordsInGroup.length} ${recordsInGroup.length === 1 ? 'record' : 'records'})</span>
-        </td>
-      </tr>
-    `;
-
-    // Append child data rows belonging underneath this targeted tracking group header block
-    finalAssembledHtml += recordsInGroup.map(app => buildRowHtml(app)).join("");
-  });
-
-  tableBody.innerHTML = finalAssembledHtml;
+debugger;
+  // Pass current updates through sorting layouts and re-render the rows
+  sortListData(activeSortField, true);
 }
 
-
 /**
- * Handles toggling active classes styling metrics inside visual grouping button bars
+ * 2. Sorting Module: Decoupled Alphanumeric Bidirectional Sorting Vector Loops
  */
-function updateGroupingUiButtons(selectedMode) {
-  activeGroupingMode = selectedMode;
-  
-  const buttons = {
-    "none": document.getElementById("btn-group-none"),
-    "companyName": document.getElementById("btn-group-company"),
-    "status": document.getElementById("btn-group-status")
-  };
+function sortListData(field, isLiveSync = false) {
+	  // If clicked manually, toggle direction vector flags
+	  if (activeSortField === field && !isLiveSync) {
+		columnSortDirections[field] = !columnSortDirections[field];
+	  }
 
-  Object.keys(buttons).forEach(modeKey => {
-    const btn = buttons[modeKey];
-    if (!btn) return;
+	  activeSortField = field;
+	  const isAscending = columnSortDirections[field];
 
-    if (modeKey === selectedMode) {
-      btn.className = "px-4 py-1.5 rounded-md font-semibold text-xs transition duration-150 bg-white text-slate-800 shadow-xs";
-    } else {
-      btn.className = "px-4 py-1.5 rounded-md font-semibold text-xs transition duration-150 text-slate-600 hover:text-slate-900";
+	filteredApplications.sort((a, b) => {
+    // Handle formal Date sorting chronologically
+    if (field === "dateApplied") {
+      const timeA = a.dateApplied ? new Date(a.dateApplied.trim()).getTime() : 0;
+      const timeB = b.dateApplied ? new Date(b.dateApplied.trim()).getTime() : 0;
+      
+      // Fix: Corrected the directional assignment vectors
+      // Ascending (true) = Oldest first (timeA - timeB)
+      // Descending (false) = Newest first (timeB - timeA)
+      return isAscending ? (timeA - timeB) : (timeB - timeA);
     }
-  });
 
-  renderListTable();
-}
-
-// --- Interactive Click Action Interceptors Event Bindings Layout setup ---
-document.querySelectorAll(".sortable-header").forEach(header => {
-  header.addEventListener("click", () => sortData(header.getAttribute("data-sort")));
-});
-
-document.getElementById("btn-group-none").addEventListener("click", () => updateGroupingUiButtons("none"));
-document.getElementById("btn-group-company").addEventListener("click", () => updateGroupingUiButtons("companyName"));
-document.getElementById("btn-group-status").addEventListener("click", () => updateGroupingUiButtons("status"));
-
-// --- Auth Watcher State Synchronization Pipeline wire ---
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    onSnapshot(collection(db, `users/${user.uid}/applications`), (snapshot) => {
-      datasetCache = [];
-      snapshot.forEach(doc => {
-        datasetCache.push({ id: doc.id, ...doc.data() });
-      });
-
-      const currentActiveField = activeSortField;
-      const currentOrder = isAscendingOrder;
-      activeSortField = ""; 
-      isAscendingOrder = currentOrder;
-      sortData(currentActiveField);
-    }, (error) => {
-      console.error("List sync stream failed:", error);
-      tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-rose-600 font-medium">Error linking to secure database live channels.</td></tr>`;
-    });
-  } else {
-    window.location.replace("index.html");
-  }
-});
-
-/**
- * Executes a client-side alphanumeric sort on the internal data cache array.
- * @param {string} field - The property string key to sort by.
- * @param {boolean} isLiveSync - True if triggered by Firestore, False if a manual click.
- */
-function sortData(field, isLiveSync = false) {
-  // 1. ONLY flip the direction vector if a human manually clicks the active column header
-  if (activeSortField === field && !isLiveSync) {
-    columnSortDirections[field] = !columnSortDirections[field];
-  }
-  
-  // Explicitly set the active field pointer
-  activeSortField = field;
-  const isAscending = columnSortDirections[field];
-
-  // 2. Perform the matching alphanumeric array sort
-  datasetCache.sort((a, b) => {
-    let valA = (a[field] || "").toString().toLowerCase();
-    let valB = (b[field] || "").toString().toLowerCase();
-
-    // Numerical parsing fallback targets for safety
-    if (!isNaN(valA) && !isNaN(valB) && valA !== "" && valB !== "") {
-      valA = Number(valA);
-      valB = Number(valB);
-    }
+    // Default Fallback string comparisons for regular text columns
+    let valA = (a[field] || "").toString().toLowerCase().trim();
+    let valB = (b[field] || "").toString().toLowerCase().trim();
 
     if (valA < valB) return isAscending ? -1 : 1;
     if (valA > valB) return isAscending ? 1 : -1;
     return 0;
   });
-
-  // 3. Redraw view components
-  updateHeaderIcons();
-  renderListTable();
+  
+  updateSortHeaderIcons();
+  renderListRegistrySheet();
 }
 
-// Handle manual click events on the table headers
-document.querySelectorAll(".sortable-header").forEach(header => {
-  header.addEventListener("click", () => {
-    // Regular user click -> toggles direction fluidly
-    sortData(header.getAttribute("data-sort"), false);
+/**
+ * 3. Render Module: Builds rows and partitions clusters based on grouping selections
+ */
+function renderListRegistrySheet() {
+  if (filteredApplications.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-slate-400 font-medium bg-white">No applications match the active timeframe criteria parameters.</td></tr>`;
+    if (groupSummaryBadge) groupSummaryBadge.textContent = "Filtered results pool clean";
+    return;
+  }
+
+  // Handle standard Flat Grid Sheet layouts
+  if (activeGroupingMode === "none") {
+    if (groupSummaryBadge) groupSummaryBadge.textContent = "Showing un-grouped standard flat master track list roster";
+    tableBody.innerHTML = filteredApplications.map(app => buildRowElementHtml(app)).join("");
+    return;
+  }
+
+  // Process multi-tier cluster groupings bucket mapping maps
+  const cleanLabelMap = { companyName: "companies", status: "pipeline stages", tag: "sub-status milestones" };
+  if (groupSummaryBadge) groupSummaryBadge.textContent = `Segmenting rows by active parameter: ${cleanLabelMap[activeGroupingMode]}`;
+
+  const groups = {};
+  filteredApplications.forEach(app => {
+    const rawVal = app[activeGroupingMode];
+    const groupKey = rawVal && rawVal.trim() !== "" ? rawVal.trim() : (activeGroupingMode === "tag" ? "Untagged Track Actions" : "Pre-Application");
+
+    if (!groups[groupKey]) groups[groupKey] = [];
+    groups[groupKey].push(app);
   });
-});
+
+  // Sort keys alphabetically so grouped tables stay ordered cleanly
+  const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+  let finalHtml = "";
+
+  sortedKeys.forEach(title => {
+    const records = groups[title];
+    finalHtml += `
+      <tr class="bg-slate-100/90 border-y border-slate-200/80 select-none">
+        <td colspan="6" class="p-3 text-xs font-bold uppercase tracking-wider text-slate-600 px-4">
+          📁 ${title} <span class="ml-1 text-[11px] font-semibold text-slate-400">(${records.length} ${records.length === 1 ? 'record' : 'records'})</span>
+        </td>
+      </tr>
+    `;
+    finalHtml += records.map(app => buildRowElementHtml(app)).join("");
+  });
+
+  tableBody.innerHTML = finalHtml;
+}
 
 /**
- * Updates UI direction arrows inside standard heading elements mapping vectors
+ * Compiles specific row segments matching application properties
  */
-function updateHeaderIcons() {
-  document.querySelectorAll(".sortable-header").forEach(header => {
-    const iconSpan = header.querySelector(".sort-icon");
-    const targetField = header.getAttribute("data-sort");
-
-    if (targetField === activeSortField) {
-      // Look up direction vectors directly out of the independent tracking matrix mapper
-      const isAscending = columnSortDirections[targetField];
-      iconSpan.textContent = isAscending ? " 🔼" : " 🔽";
-      header.classList.add("text-blue-600", "bg-slate-50/80");
+function buildRowElementHtml(app) {
+const company = app.companyName || "Unknown Company";
+  const title = app.jobTitle || "Untitled Position";
+  const status = app.status || "Pre-Application";
+  const tag = app.tag ? app.tag.trim() : "";
+  const location = app.location ? `${app.locationType || "Onsite"} (${app.location})` : (app.locationType || "Remote");
+  
+  // --- Dynamic Date Applied Formatting Engine ---
+  let formattedDateDisplay = "—";
+  
+  if (app.dateApplied && app.dateApplied.trim() !== '') {
+	const dateObj = new Date(app.dateApplied.trim());
+    // Ensure the date string successfully evaluated into a valid Date object instance
+    if (!isNaN(dateObj.getTime())) {
+      formattedDateDisplay = dateObj.toLocaleDateString('en-US', {
+        month: 'short',   // "Jan", "Feb", etc.
+        day: 'numeric',   // "1", "2", "26"
+        year: 'numeric'   // "2026"
+      });
     } else {
-      iconSpan.textContent = "";
-      header.classList.remove("text-blue-600", "bg-slate-50");
+      formattedDateDisplay = app.dateApplied; // Fallback to raw string if parsing fails
+    }
+  }
+
+  // Macro Color Themes
+  let statusClass = "bg-slate-100 text-slate-700 border border-slate-200";
+  if (status === "Applied") statusClass = "bg-blue-50 text-blue-700 border-blue-100 border";
+  if (status === "Interviewing") statusClass = "bg-amber-50 text-amber-700 border-amber-100 border";
+  if (status === "Offered") statusClass = "bg-emerald-50 text-emerald-700 border-emerald-100 border font-medium";
+  if (status === "Rejected") statusClass = "bg-rose-50 text-rose-700 border-rose-100 border";
+
+  // Micro Color Themes
+  const tagColors = {
+    'Under Review':          'bg-indigo-50 text-indigo-700 border-indigo-200',
+    'Follow-up Sent':        'bg-purple-50 text-purple-700 border-purple-200',
+    'Awaiting Response':     'bg-sky-50 text-sky-700 border-sky-200',
+    'On Hold':               'bg-orange-50 text-orange-700 border-orange-200',
+    'Offer Accepted':        'bg-teal-50 text-teal-700 border-teal-200 font-medium',
+    'Start Date Confirmed':  'bg-green-100 text-green-800 border-green-300 font-semibold',
+    'Position Filled':       'bg-rose-50 text-rose-600 border-rose-100',
+    'Not Selected':          'bg-rose-100 text-rose-700 border-rose-200'
+  };
+  const tagClass = tagColors[tag] || 'bg-slate-50 text-slate-400 border-slate-200/50 text-[11px]';
+
+  return `
+    <tr class="hover:bg-slate-50/60 transition-colors">
+      <td class="p-4 font-bold text-slate-900">${company}</td>
+      <td class="p-4 text-slate-600 font-medium">${title}</td>
+      <td class="p-4"><span class="text-xs px-2.5 py-1 rounded-md font-semibold tracking-wide ${statusClass}">${status}</span></td>
+      <td class="p-4"><span class="text-xs px-2.5 py-1 rounded-md border tracking-wide ${tagClass}">${tag || '—'}</span></td>
+      <td class="p-4 text-slate-500 font-medium">${location}</td>
+      <td class="p-4 text-slate-500 font-mono font-medium">${formattedDateDisplay}</td>
+    </tr>
+  `;
+}
+
+function updateSortHeaderIcons() {
+  document.querySelectorAll(".sortable-header").forEach(header => {
+    const icon = header.querySelector(".sort-icon");
+    const field = header.getAttribute("data-sort");
+
+    if (field === activeSortField) {
+      icon.textContent = columnSortDirections[field] ? " 🔼" : " 🔽";
+      header.className = "sortable-header p-4 cursor-pointer text-blue-600 bg-slate-50/80 transition font-bold";
+    } else {
+      icon.textContent = "";
+      header.className = "sortable-header p-4 cursor-pointer hover:bg-slate-100 text-slate-500 transition font-bold";
     }
   });
 }
 
-// --- Dynamic Interactive Event Bindings ---
-document.querySelectorAll(".sortable-header").forEach(header => {
-  header.addEventListener("click", () => {
-    sortData(header.getAttribute("data-sort"));
+function updateGroupButtonsUi(selectedMode) {
+  activeGroupingMode = selectedMode;
+  const ids = { none: "btn-group-none", companyName: "btn-group-company", status: "btn-group-status", tag: "btn-group-tag" };
+
+  Object.keys(ids).forEach(key => {
+    const btn = document.getElementById(ids[key]);
+    if (!btn) return;
+    btn.className = (key === selectedMode)
+      ? "group-btn px-3.5 py-1.5 rounded-md font-semibold text-xs bg-white text-slate-800 shadow-xs transition"
+      : "group-btn px-3.5 py-1.5 rounded-md font-semibold text-xs text-slate-600 hover:text-slate-900 transition";
   });
+
+  renderListRegistrySheet();
+}
+
+// --- Wire Listeners ---
+document.querySelectorAll(".sortable-header").forEach(h => {
+  h.addEventListener("click", () => sortListData(h.getAttribute("data-sort"), false));
 });
 
-// --- Auth Watcher State Synchronization Pipeline wire ---
-auth.onAuthStateChanged((user) => {
+document.getElementById("btn-group-none").addEventListener("click", () => updateGroupButtonsUi("none"));
+document.getElementById("btn-group-company").addEventListener("click", () => updateGroupButtonsUi("companyName"));
+document.getElementById("btn-group-status").addEventListener("click", () => updateGroupButtonsUi("status"));
+document.getElementById("btn-group-tag").addEventListener("click", () => updateGroupButtonsUi("tag"));
+
+if (dateInput) {
+  dateInput.addEventListener("change", () => applyListFilters());
+}
+
+// --- Wire Database Subscription Stream Channels ---
+onAuthStateChanged(auth, (user) => {
   if (user) {
+    // Standardize baseline lookback constraints mapping structures
+    if (dateInput && !dateInput.value) {
+      dateInput.value = getPastDateString(30);
+    }
+
     onSnapshot(collection(db, `users/${user.uid}/applications`), (snapshot) => {
-      datasetCache = [];
+      rawApplicationsCache = [];
       snapshot.forEach(doc => {
-        datasetCache.push({ id: doc.id, ...doc.data() });
+        rawApplicationsCache.push({ id: doc.id, ...doc.data() });
       });
 
-      // Maintain current sorting profile rules safely, passing true for isLiveSync
-      sortData(activeSortField, true);
-      
+      applyListFilters();
     }, (error) => {
-      console.error("List sync stream failed:", error);
+      console.error("Firestore Registry Synchronizer Crash:", error);
     });
   } else {
     window.location.replace("index.html");
   }
 });
+
+// --- Text Inputs Real-Time Observers Hooks ---
+const searchCompanyInput = document.getElementById("filter-search-company");
+const searchTitleInput = document.getElementById("filter-search-title");
+
+if (searchCompanyInput) {
+  searchCompanyInput.addEventListener("input", () => applyListFilters());
+}
+
+if (searchTitleInput) {
+  searchTitleInput.addEventListener("input", () => applyListFilters());
+}
