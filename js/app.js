@@ -125,6 +125,7 @@ function getPastDateString(daysAgo) {
 // --- Dynamic Auth and Synchronizer System Wire Hook ---
 onAuthStateChanged(auth, (user) => {
   if (user) {
+	  currentUser = user;
     const dateInput = document.getElementById('filter-start-date');
     
     // 1. Establish your default 30-day filter setting if not set manually yet
@@ -403,7 +404,7 @@ function openModal(id = null) {
   appForm.reset();
   formAppId.value = '';
   modalTitle.textContent = 'Add New Application';
-  deleteAppBtn.classList.add('hidden');
+  deleteAppBtn.classList.add('hidden');  
 
   if (id) {
     const app = allApplications.find(a => a.id === id);
@@ -422,6 +423,8 @@ function openModal(id = null) {
 	  formTag.value = app.tag || '';
       formNotes.value = app.notes || '';
       deleteAppBtn.classList.remove('hidden');
+	  formDateApplied.readOnly = true;
+	  formDateApplied.disabled = true;
 
 	  const tempLastContact = app.lastContact || '';
 	  if (tempLastContact != ''){
@@ -431,10 +434,14 @@ function openModal(id = null) {
 	  const tempDateApplied = app.dateApplied || '';
 	  if (tempDateApplied != ''){
 		  formDateApplied.value = new Date(app.dateApplied).toISOString().split('T')[0];
-	  }
-	  
+	  }	  
     }
   }
+  else{
+	  formDateApplied.readOnly = false;
+	  formDateApplied.disabled = false;	  
+  }
+
   formModal.classList.remove('hidden');
 }
 
@@ -472,7 +479,7 @@ appForm.addEventListener('submit', async (e) => {
     status: formStatus.value,
     location: formLocation.value,
 	cityName: formCityName.value,
-    url: formUrl.value,
+    //url: formUrl.value,
 	source: formSource.value,
 	tag: formTag.value,
     notes: formNotes.value,
@@ -564,6 +571,7 @@ function applyDateFilter() {
 
 // --- Profile Menu Module Component Event Coordinator ---
 onAuthStateChanged(auth, (user) => {
+	currentUser = user;
   const menuContainer = document.getElementById('profile-menu-container');
   
   if (user) {
