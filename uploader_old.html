@@ -7,35 +7,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#2563eb">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='5' width='28' height='22' rx='6' fill='%232563eb'/%3E%3Crect x='7' y='11' width='4' height='10' rx='1' fill='%23ffffff' fill-opacity='0.5'/%3E%3Crect x='14' y='11' width='4' height='13' rx='1' fill='%23ffffff'/%3E%3Crect x='21' y='11' width='4' height='7' rx='1' fill='%23ffffff' fill-opacity='0.7'/%3E%3C/svg%3E">  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='5' width='28' height='22' rx='6' fill='%232563eb'/%3E%3Crect x='7' y='11' width='4' height='10' rx='1' fill='%23ffffff' fill-opacity='0.5'/%3E%3Crect x='14' y='11' width='4' height='13' rx='1' fill='%23ffffff'/%3E%3Crect x='21' y='11' width='4' height='7' rx='1' fill='%23ffffff' fill-opacity='0.7'/%3E%3C/svg%3E">
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
 
-  <!-- ================= AUTH CONTAINER ================= -->
-  <div id="auth-container" class="flex flex-col items-center justify-center min-h-screen px-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center space-y-6">
-      <div class="h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mx-auto shadow-md">
-        CC
-      </div>
-      <div>
-        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">CareerCanvas</h1>
-        <p class="text-slate-500 mt-2">Track, visualize, and master your job application pipeline.</p>
-      </div>
-      <button id="login-btn" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 font-medium py-3 px-4 rounded-xl shadow-xs transition duration-200 cursor-pointer">
-        <svg class="w-5 h-5" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-1.14 2.78-2.4 3.62v3.01h3.88c2.27-2.09 3.57-5.17 3.57-8.48Z"/>
-          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.01c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.11-6.68-4.96H1.21v3.11C3.18 21.88 7.31 24 12 24Z"/>
-          <path fill="#FBBC05" d="M5.32 14.28a7.16 7.16 0 0 1 0-4.56V6.61H1.21a11.94 11.94 0 0 0 0 10.78l4.11-3.11Z"/>
-          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0 7.31 0 3.18 2.12 1.21 5.39l4.11 3.11c.94-2.85 3.57-4.96 6.68-4.96Z"/>
-        </svg>
-        Sign in with Google
-      </button>
-    </div>
-  </div>
-
-  <!-- ================= MAIN APP CONTAINER ================= -->
-  <div id="app-container" class="hidden flex flex-col min-h-screen">
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
       <div class=" mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -57,51 +32,56 @@
 	  <h1 class="text-xl font-black tracking-tight text-slate-900">Career<span class="text-blue-600">Canvas</span></h1>
 	</div>
 	
+<div class="flex items-center gap-2.5 bg-slate-100/80 border border-slate-200 px-3.5 py-1.5 rounded-xl text-sm">
+  <label for="filter-start-date" class="font-bold text-slate-700 whitespace-nowrap">📅 Show since:</label>
+  <input type="date" id="filter-start-date" class="border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700 font-medium focus:outline-hidden focus:border-blue-500 transition cursor-pointer">
+</div>	
+		
         <div class="flex items-center gap-4">
+          <button id="add-app-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer">
+            + New Application
+          </button>
 	  
-		<div id="profile-menu-container" class="relative hidden">
-		  <button type="button" id="profile-menu-trigger" class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition cursor-pointer shadow-xs focus:outline-hidden">
-			<div class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold uppercase tracking-wide" id="profile-avatar-initials">
-			  --
-			</div>
-			<span id="profile-display-name" class="text-sm font-bold text-slate-700 max-w-[120px] truncate">Loading...</span>
-			<svg class="w-4 h-4 text-slate-400 transition-transform duration-200" id="profile-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-			  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-			</svg>
-		  </button>
+<div id="profile-menu-container" class="relative hidden">
+  <button type="button" id="profile-menu-trigger" class="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition cursor-pointer shadow-xs focus:outline-hidden">
+    <div class="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold uppercase tracking-wide" id="profile-avatar-initials">
+      --
+    </div>
+    <span id="profile-display-name" class="text-sm font-bold text-slate-700 max-w-[120px] truncate">Loading...</span>
+    <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" id="profile-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
 
-		  <div id="profile-dropdown-card" class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-lg opacity-0 pointer-events-none scale-95 transition-all duration-200 z-50 origin-top-right">
-			<div class="p-3.5 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
-			  <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Signed In As</p>
-			  <p id="profile-dropdown-email" class="text-xs font-medium text-slate-600 truncate mt-0.5">user@example.com</p>
-			</div>
-			
-			<div class="p-1.5 space-y-0.5">
-			  <a href="index.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition">
-				📋 Board View
-			  </a>	
-			  <a href="list.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition">
-				📋 List View
-			  </a>
-			  <a href="uploader.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition">
-				📤 Upload Data
-			  </a>
-			</div>
+  <div id="profile-dropdown-card" class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-lg opacity-0 pointer-events-none scale-95 transition-all duration-200 z-50 origin-top-right">
+    <div class="p-3.5 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+      <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Signed In As</p>
+      <p id="profile-dropdown-email" class="text-xs font-medium text-slate-600 truncate mt-0.5">user@example.com</p>
+    </div>
+    
+    <div class="p-1.5 space-y-0.5">
+      <a href="list.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition">
+        📋 List View
+      </a>
+      <a href="uploader.html" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition">
+        📤 Upload Data
+      </a>
+    </div>
 
-			<div class="p-1.5 border-t border-slate-100">
-			  <button type="button" id="btn-profile-logout" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer text-left">
-				🚪 Sign Out
-			  </button>
-			</div>
-		  </div>
-		</div>
+    <div class="p-1.5 border-t border-slate-100">
+      <button type="button" id="btn-profile-logout" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer text-left">
+        🚪 Sign Out Securely
+      </button>
+    </div>
+  </div>
+</div>
 
         </div>
       </div>
     </header>
 
-    <!-- Main Workspace -->
-	<main class="flex-1 w-full max-w-none px-6 py-8 overflow-x-auto box-border">
+
+
   <div class="bg-white w-full max-w-xl rounded-2xl shadow-xl border border-slate-200 p-6 space-y-6">
     
     <div class="border-b border-slate-100 pb-4">
@@ -131,14 +111,11 @@
     </div>
 
   </div>
-    </main>
-  </div>
 
-
-  <!-- Scripts -->
+  <!-- Scripts --> 
   <script type="module" src="js/appmini.js"></script>
   
-   <script type="module">
+  <script type="module">
     import { collection, writeBatch, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
     
@@ -259,7 +236,7 @@
 			lastContact: String(row.LastContact || '').trim(),
             lastUpdated: serverTimestamp()
           };
-//debugger;
+debugger;
           const newDocRef = doc(collection(db, collectionPath));
           batch.set(newDocRef, appPayload);
           
