@@ -387,11 +387,27 @@ function attachCardEventListeners() {
 async function updateApplicationStatus(appId, newStatus) {
   if (!currentUser) return;
   const appRef = doc(db, `users/${currentUser.uid}/applications`, appId);
+  
+const updatePayload = {
+    status: newStatus,
+	lastUpdated: new Date().toISOString().slice(0, 10)
+  };
+  
+  debugger;
+  
+// Check if the card is entering a final milestone stage
+  if (["Interviewing", "Offered", "Rejected"].includes(newStatus)) {
+    // Generate a clean YYYY-MM-DD string for today local time
+    const todayStr = new Date().toISOString().slice(0, 10);
+    updatePayload.dateResponded = todayStr;
+  } else {
+    // If they drag a card BACK to "Applied" or "Pre-Application", clear the metric
+    updatePayload.dateResponded = "";
+  }
+  
+  
   try {
-    await updateDoc(appRef, { 
-      status: newStatus,	  
-      lastUpdated: new Date().toISOString().slice(0, 10)
-    });
+    await updateDoc(appRef, updatePayload);
   } catch (err) {
     console.error("Error updating application status:", err);
   }
