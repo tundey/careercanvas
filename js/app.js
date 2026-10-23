@@ -273,9 +273,8 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 			  app.location === 'Hybrid' ? 'bg-purple-50 text-purple-600' : 'bg-amber-50 text-amber-600'
 			}">${app.location || 'Remote'}</span>
 			
-			${dateBadgeHtml}
-	<br>
-			${dateBadgeHtml}
+			Applied: ${dateBadgeHtml}
+			Last Contact: ${dateBadgeHtml}
 		  </div>
 		</div>
 		
