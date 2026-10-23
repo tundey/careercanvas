@@ -241,21 +241,56 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
     
 	if (diffDays <= 0) {
-      dateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Today</span>`;
+      dateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Applied: Today</span>`;
     } else {
       // If an application has been sitting for greater than 14 calendar days, highlight it amber
       const ageColorClass = diffDays > 14 ? 'text-amber-600 bg-amber-50 font-bold' : 'text-slate-400 bg-slate-50';
-      dateBadgeHtml = `<span class="text-[10px] px-1.5 py-0.5 rounded-sm ${ageColorClass}">${diffDays}d ago</span>`;
+      dateBadgeHtml = `<span class="text-[10px] px-1.5 py-0.5 rounded-sm ${ageColorClass}">Applied: ${diffDays}d ago</span>`;
     }
   } else {
     // Fallback if the string format itself is unparseable
-    dateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Today</span>`;
+    dateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Applied: Today</span>`;
   }
 } else {
   // Fallback if dateApplied is missing or null
-  dateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Today</span>`;
+  dateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Applied: Today</span>`;
 }
-	
+
+// Calculate true calendar day roll-over (With Strict Validation Guard)
+let lastContactDateBadgeHtml = '';
+
+if (app.lastContact && typeof app.lastContact === 'string') {
+  // 1. Clean up any trailing/leading spaces and validate it's a parseable date string
+  const cleanDateStr = app.lastContact.trim();
+  const timestampMs = Date.parse(cleanDateStr);
+
+  // If the string is corrupt or invalid, Date.parse returns NaN
+  if (!isNaN(timestampMs)) {
+	const appliedCalendarDate = new Date(cleanDateStr);
+
+    // 3. Get the user's current local calendar date at absolute Midnight
+    const today = new Date();
+    const localTodayCalendarDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    // 4. Subtract baselines to get the calendar day delta
+    const diffTime = localTodayCalendarDate - appliedCalendarDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+    
+	if (diffDays <= 0) {
+      lastContactDateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Last Contact: Today</span>`;
+    } else {
+      // If an application has been sitting for greater than 14 calendar days, highlight it amber
+      const ageColorClass = diffDays > 14 ? 'text-amber-600 bg-amber-50 font-bold' : 'text-slate-400 bg-slate-50';
+      lastContactDateBadgeHtml = `<span class="text-[10px] px-1.5 py-0.5 rounded-sm ${ageColorClass}">Last Contact: ${diffDays}d ago</span>`;
+    }
+  } else {
+    // Fallback if the string format itself is unparseable
+    lastContactDateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Last Contact: Today</span>`;
+  }
+} else {
+  // Fallback if lastContact is missing or null
+  lastContactDateBadgeHtml = `<span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">Last Contact: Today</span>`;
+}      
 	
 	// Generate HTML card string
 	fragments[colName] += `
@@ -274,6 +309,7 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 			}">${app.location || 'Remote'}</span>
 			
 			${dateBadgeHtml}
+			${lastContactDateBadgeHtml}
 		  </div>
 		</div>
 		
@@ -567,10 +603,10 @@ function applyDateFilter() {
   cutoffDate.setHours(0, 0, 0, 0); // Clear out timestamps for uniform comparison
 
   allApplications = rawApplicationsCache.filter(app => {
-    if (!app.dateApplied || app.dateApplied.trim() === '') return false;
+    //if (!app.dateApplied || app.dateApplied.trim() === '') return false;
 
     // 2. Convert the individual application's string date into a formal Date object
-    const applicationDate = new Date(app.dateApplied);
+    const applicationDate = new Date(app.lastContact ?? app.dateApplied);
     applicationDate.setHours(0, 0, 0, 0); // Clear out timestamps here as well
 	
     // 3. Compare the absolute numerical millisecond values directly
