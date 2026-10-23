@@ -257,7 +257,7 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 }
 
 // Calculate true calendar day roll-over (With Strict Validation Guard)
-let lastContactlastContactDateBadgeHtml = '';
+let lastContactDateBadgeHtml = '';
 
 if (app.lastContact && typeof app.lastContact === 'string') {
   // 1. Clean up any trailing/leading spaces and validate it's a parseable date string
