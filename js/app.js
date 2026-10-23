@@ -567,10 +567,10 @@ function applyDateFilter() {
   cutoffDate.setHours(0, 0, 0, 0); // Clear out timestamps for uniform comparison
 
   allApplications = rawApplicationsCache.filter(app => {
-    if (!app.dateApplied || app.dateApplied.trim() === '') return false;
+    //if (!app.dateApplied || app.dateApplied.trim() === '') return false;
 
     // 2. Convert the individual application's string date into a formal Date object
-    const applicationDate = new Date(app.dateApplied);
+    const applicationDate = new Date(app.lastContact ?? app.dateApplied);
     applicationDate.setHours(0, 0, 0, 0); // Clear out timestamps here as well
 	
     // 3. Compare the absolute numerical millisecond values directly
