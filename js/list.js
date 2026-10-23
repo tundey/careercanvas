@@ -208,6 +208,7 @@ const company = app.companyName || "Unknown Company";
     'On Hold':               'bg-orange-50 text-orange-700 border-orange-200',
     'Offer Accepted':        'bg-teal-50 text-teal-700 border-teal-200 font-medium',
     'Start Date Confirmed':  'bg-green-100 text-green-800 border-green-300 font-semibold',
+	'Position Eliminated':   'bg-rose-50 text-rose-600 border-rose-100',
     'Position Filled':       'bg-rose-50 text-rose-600 border-rose-100',
     'Not Selected':          'bg-rose-100 text-rose-700 border-rose-200'
   };
