@@ -274,6 +274,8 @@ if (app.dateApplied && typeof app.dateApplied === 'string') {
 			}">${app.location || 'Remote'}</span>
 			
 			${dateBadgeHtml}
+	<br>
+			${dateBadgeHtml}
 		  </div>
 		</div>
 		
